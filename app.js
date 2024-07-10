@@ -2,8 +2,16 @@ import dotenv from "dotenv";
 import express from "express";
 import expressLayout from "express-ejs-layouts";
 
+import connectDB from "./config/db.js";
+
 const app=express();
 const port=4000 || process.env.PORT;
+
+// Load environment variables from .env file
+dotenv.config();
+
+//Connect to DB
+connectDB();
 
 //set the static directory
 app.use(express.static("public"));
