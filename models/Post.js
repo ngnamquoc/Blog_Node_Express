@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-//Write Schema
+//Step 1: Define schema, containing the structures and data types
 const postSchema=mongoose.Schema({
     title:{
         type:String,
@@ -21,7 +21,7 @@ const postSchema=mongoose.Schema({
         require:true
     }
 });
-
+//Step 2: Construct model from schema
 const Post = mongoose.model('Post',postSchema);
 
 export default Post;
