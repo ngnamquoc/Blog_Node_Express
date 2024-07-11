@@ -5,6 +5,7 @@ import bodyParser from "body-parser";
 
 import connectDB from "./config/db.js";
 import Post from "./models/Post.js"
+import User from "./models/User.js"
 
 const app=express();
 const port=4000 || process.env.PORT;
@@ -131,6 +132,43 @@ app.post('/search', async (req, res) => {
   }
 
 });
+
+//Admin route-Get
+app.get("/admin", async (req, res) => {
+  try{
+    const locals = {
+      title: "Admin",
+      description: "Simple Blog created with NodeJs, Express & MongoDb."
+    }
+    //render the admin index ejs file using the admin layout
+    res.render('admin/index',{
+      locals,
+      layout:"../views/layout/admin.ejs"
+    });
+  }catch(e){
+    console.log(e);
+  }
+})
+
+//Admin route-Post-Check Login
+app.post("/admin", async (req, res) => {
+  try{
+    const {username,password}=req.body;
+    if(username ==="admin" && password ==="admin123"){
+      res.send("you are logged in");
+
+    }else{
+      res.send("wrong username and password");
+
+
+    }
+  
+    
+   
+  }catch(e){
+    console.log(e);
+  }
+})
 
 // function insertPostData(){
 //     Post.insertMany([
