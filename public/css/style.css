@@ -334,8 +334,8 @@ img {
 
   /* SearchBar */
   .searchBar {
-    /* visibility: hidden;
-    transform: translateY(-100px); */
+    visibility: hidden;
+    transform: translateY(-100px);
     background-color: var(--black);
     padding: 4px 0;
     position: absolute;
@@ -356,6 +356,7 @@ img {
     right: 0;
     color: var(--gray-light);
     padding: 15px;
+    font-weight: bold;
   }
 
   /* Dashboard Admin */

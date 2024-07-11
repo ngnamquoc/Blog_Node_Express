@@ -1,12 +1,19 @@
 import dotenv from "dotenv";
 import express from "express";
 import expressLayout from "express-ejs-layouts";
+import bodyParser from "body-parser";
 
 import connectDB from "./config/db.js";
 import Post from "./models/Post.js"
 
 const app=express();
 const port=4000 || process.env.PORT;
+
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: true }));
+// parse application/json
+app.use(bodyParser.json());
+
 
 // Load environment variables from .env file
 dotenv.config();
@@ -70,13 +77,10 @@ app.get('/', async (req, res) => {
   
   });
 
-    // HomePage - GET:post_id
-
+// HomePage - GET:post_id
 app.get("/post/:id", async(req,res)=>{
     
     try{
-    
-
       //retrieve post id
       let postId=req.params.id;
       //find the post record by id
@@ -92,6 +96,40 @@ app.get("/post/:id", async(req,res)=>{
         console.log(e);
 
     }
+});
+
+//Search Route - Post - search terms
+app.post('/search', async (req, res) => {
+  try {
+    const locals = {
+      title: "Seach",
+      description: "Simple Blog created with NodeJs, Express & MongoDb."
+    }
+
+    let searchTerm = req.body.searchTerm;
+    
+    const searchNoSpecialChar = searchTerm.replace(/[^a-zA-Z0-9 ]/g, "") //special character will be replaced with ""
+    //search inside Post collection
+    const data = await Post.find({
+      //or logical operator that take array of conditions and return matching records
+      $or: [
+        //check if the title field matches the search term, 'i' specifies case-insensitive
+        { title: { $regex: new RegExp(searchNoSpecialChar, 'i') }},
+        //check if the body field matches the search term, 'i' specifies case-insensitive
+        { body: { $regex: new RegExp(searchNoSpecialChar, 'i') }}
+      ]
+    });
+
+    res.render("search", {
+      data,
+      locals,
+      currentRoute: '/'
+    });
+
+  } catch (error) {
+    console.log(error);
+  }
+
 });
 
 // function insertPostData(){
