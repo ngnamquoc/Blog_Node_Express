@@ -248,6 +248,13 @@ img {
     font-size: var(--font-size-md);
     margin: 10px 0 40px 0;
   }
+  .about_body{
+    font-size: var(--font-size-base);
+    margin: 10px 0 40px 0;
+    line-height: 1.8;
+    text-align: justify;
+
+  }
 
 /* Home Article List */
 .articles_heading {
