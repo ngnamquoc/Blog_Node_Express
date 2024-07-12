@@ -6,6 +6,14 @@ import bodyParser from "body-parser";
 import connectDB from "./config/db.js";
 import Post from "./models/Post.js"
 import User from "./models/User.js"
+import cookieParser from "cookie-parser";
+import MongoStore from 'connect-mongo';
+import session from "express-session";
+import bycrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+
+// Load environment variables from .env file
+dotenv.config();
 
 const app=express();
 const port=4000 || process.env.PORT;
@@ -15,9 +23,37 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // parse application/json
 app.use(bodyParser.json());
 
+//Middleware
+//Check Login Page
+const authMiddleware=(req,res,next)=>{
+  console.log(req);
+  const token=req.cookies.token;
 
-// Load environment variables from .env file
-dotenv.config();
+  if(!token){
+    return res.status(401).json({message:"Unauthorized"})
+  }else{
+    try{
+      const decoded=jwt.verify(token,process.env.JWT_SECRET);
+      req.userId=decoded.userId;//adds the userId property to the request object
+      next();
+    }catch(e){
+      return res.status(401).json({message:"Unauthorized"})
+    }
+  }
+}
+
+//cookie and session config
+app.use(cookieParser());
+app.use(session({
+  secret: 'foo',
+  resave: false,
+  saveUninitialized: true,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI,
+  }),
+  cookie: { maxAge: new Date ( Date.now() + (3600000) ) } 
+}));
+
 
 //Connect to DB
 connectDB();
@@ -154,17 +190,54 @@ app.get("/admin", async (req, res) => {
 app.post("/admin", async (req, res) => {
   try{
     const {username,password}=req.body;
-    if(username ==="admin" && password ==="admin123"){
-      res.send("you are logged in");
+    const user=await User.findOne({username});
+    if(!user){
+      return res.status(401).json({message:"Invalid credentials"})
+    }
+    const isPasswordValid = await bycrypt.compare(password,user.password);
+    if(!isPasswordValid){
+      return res.status(401).json({message:"Invalid credentials"})
+    }
+    //create token for current session
+    const token=jwt.sign({userId:user._id},process.env.JWT_SECRET);
+    res.cookie('token',token,{httpOnly:true});
+    
+    res.redirect("/dashboard");
+   
+  }catch(e){
+    console.log(e);
+  }
+})
 
-    }else{
-      res.send("wrong username and password");
+// GET-Admin Dashboard
+app.get("/dashboard",authMiddleware, async (req, res) => {
+  res.render("admin/dashboard");
+})
 
+//Admin register page route-Post
+app.post("/register", async (req, res) => {
+  try{
+    const {username,password}=req.body;
+    // console.log(username);
+    // console.log(password);
+    const hashedPassword=await bycrypt.hash(password,10);
+
+    try{
+      const user = User.create({
+        username:username,
+        password:hashedPassword
+      });
+      res.status(201).json({message:"User Created...",user})
+    }catch(e){
+      console.log(e);
+      if(e.code===11000){
+        res.status(409).json({message:"User already registered!"})
+      }else{
+        res.status(500).json({message:"Internal Server Error"});
+      }
 
     }
-  
     
-   
   }catch(e){
     console.log(e);
   }

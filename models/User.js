@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 //Step 1: Define schema, containing the structures and data types
 const userSchema=mongoose.Schema({
-    title:{
+    username:{
         type:String,
         require:true,
         unique:true
@@ -10,6 +10,7 @@ const userSchema=mongoose.Schema({
     password:{
         type:String,
         require:true,
+        unique:true
     },
    
 });

@@ -26,3 +26,14 @@ document.addEventListener('DOMContentLoaded', function(){
   
   
   });
+
+  //Register Btn
+  document.querySelector(".showPassBtn").addEventListener('change',function(){
+    let passwordField= document.getElementById("passwordField");
+    if(this.checked){
+      passwordField.setAttribute("type","text");
+    }else{
+      passwordField.setAttribute("type","password");
+
+    }
+  })

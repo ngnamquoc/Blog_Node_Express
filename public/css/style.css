@@ -391,7 +391,11 @@ img {
   justify-content: space-between;
   padding: 10px 0;
 }
-  
+
+/* Register Form */
+.showPassBtn{
+  margin: 1rem 0;
+}
   
  
   
