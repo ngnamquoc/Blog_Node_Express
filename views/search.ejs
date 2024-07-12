@@ -3,17 +3,31 @@
 </div>
 
 <section class="articles">
-    <ul class="article_ul">
-        <% data.forEach(record => { %>
-            <li>
-                <a href="/post/<%= record._id %>">
-                    <span><%= record.title %></span>
-                    <span class="article_list_date"><%= record.createdAt.toDateString() %></span>
-                </a>
-            </li>
+        <% if (data!==null) { %>
+            <% data.forEach(record => { %>
+                <ul class="article_ul">
+
+                    <li>
+                        <a href="/post/<%= record._id %>">
+                            <span><%= record.title %></span>
+                            <span class="article_list_date"><%= record.createdAt.toDateString() %></span>
+                        </a>
+                    </li>
+                </ul>
+
+             
+            <% }) %>
          
-        <% }) %>
+        <% } %>
+        <% if(data.length==0){ %>
+            <p>No Matching Result...</p>
+        <% } %>
+            
+
+            
+
+         
+       
       
         
-    </ul>
 </section>

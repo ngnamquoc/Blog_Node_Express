@@ -11,6 +11,8 @@ import MongoStore from 'connect-mongo';
 import session from "express-session";
 import bycrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import methodOverride from "method-override";
+import isActiveRoute from "./helpers/routeHelpers.js";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -18,15 +20,20 @@ dotenv.config();
 const app=express();
 const port=4000 || process.env.PORT;
 
+//active route check
+app.locals.isActiveRoute=isActiveRoute;
+
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: true }));
 // parse application/json
 app.use(bodyParser.json());
+//set to use methodOverride
+app.use(methodOverride('method'));
 
 //Middleware
 //Check Login Page
 const authMiddleware=(req,res,next)=>{
-  console.log(req);
+  // console.log(req);
   const token=req.cookies.token;
 
   if(!token){
@@ -43,15 +50,16 @@ const authMiddleware=(req,res,next)=>{
 }
 
 //cookie and session config
-app.use(cookieParser());
+app.use(cookieParser()); //Parses the cookies attached to incoming requests. This makes the cookies available under req.cookies.
+//session middleware configuration
 app.use(session({
-  secret: 'foo',
+  secret: 'keyboard cat',
   resave: false,
   saveUninitialized: true,
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
   }),
-  cookie: { maxAge: new Date ( Date.now() + (3600000) ) } 
+  cookie: { secure: process.env.NODE_ENV==='production' }
 }));
 
 
@@ -114,6 +122,20 @@ app.get('/', async (req, res) => {
   
   });
 
+// AboutPage - GET
+app.get("/about",(req,res)=>{
+    res.render('about',{
+      currentRoute:"/about"
+    });
+});
+
+// ContactPage - GET
+app.get("/contact",(req,res)=>{
+    res.render('contact',{
+      currentRoute:"/contact"
+    });
+});
+
 // HomePage - GET:post_id
 app.get("/post/:id", async(req,res)=>{
     
@@ -127,7 +149,11 @@ app.get("/post/:id", async(req,res)=>{
         "description":"This is a simple blog created with NodeJs, Express and MongoDB.",
       }
       //pass post detail to view 
-      res.render('post',{locals, data});
+      res.render('post',{
+        locals, 
+        data,
+        currentRoute:`/post/${postId}`
+      });
 
     }catch(e){
         console.log(e);
@@ -156,7 +182,6 @@ app.post('/search', async (req, res) => {
         { body: { $regex: new RegExp(searchNoSpecialChar, 'i') }}
       ]
     });
-
     res.render("search", {
       data,
       locals,
@@ -211,7 +236,120 @@ app.post("/admin", async (req, res) => {
 
 // GET-Admin Dashboard
 app.get("/dashboard",authMiddleware, async (req, res) => {
-  res.render("admin/dashboard");
+  try{
+    const locals = {
+      title: "Admin Dashboard",
+      description: "Simple Blog created with NodeJs, Express & MongoDb."
+    }
+    const data=await Post.aggregate([ { $sort: { createdAt: -1 } } ]);
+    res.render("admin/dashboard",{
+      locals,
+      data,
+      layout: "../views/layout/admin.ejs"
+
+    });
+  }catch(e){
+    console.log(e);
+  }
+})
+
+// GET-Admin - Create new post
+app.get("/add-post",authMiddleware, async (req, res) => {
+  try{
+    const locals = {
+      title: "Add Post",
+      description: "Simple Blog created with NodeJs, Express & MongoDb."
+    }
+    const data=await Post.find();
+    res.render("admin/add-post",{
+      locals,
+      data,
+      layout: "../views/layout/admin.ejs"
+    });
+  }catch(e){
+    console.log(e);
+  }
+})
+
+// Post-Admin - Create new post
+app.post("/add-post",authMiddleware, async (req, res) => {
+  try{
+
+    try{
+
+      const newPost=new Post({
+        title:req.body.title,
+        body:req.body.body
+      })
+      await Post.create(newPost);
+      res.redirect("/dashboard");
+
+
+    }catch(e){
+      console.log(e);
+    }
+ 
+   
+  }catch(e){
+    console.log(e);
+  }
+})
+
+// Get-Admin - Edit post
+app.get("/edit-post/:id",authMiddleware, async (req, res) => {
+  try{
+    const locals = {
+      title: "Edit Post",
+      description: "Simple Blog created with NodeJs, Express & MongoDb."
+    }
+    //find post with id 
+    const data = await Post.findOne({_id:req.params.id});
+    // console.log(data);
+    res.render('admin/edit-post',{
+      data,
+      layout: "../views/layout/admin.ejs"
+    })
+   
+  }catch(e){
+    console.log(e);
+  }
+})
+
+// Put-Admin - Edit post
+app.put("/edit-post/:id",authMiddleware, async (req, res) => {
+  try{
+    console.log(req.params.id);
+    //find post with id and update
+    await Post.findByIdAndUpdate(req.params.id,{
+      title: req.body.title,
+      body: req.body.body,
+      updatedAt: Date.now()
+    });
+    //redirect to edit post get page
+    res.redirect(`/edit-post/${req.params.id}`);
+  }catch(e){
+    console.log(e);
+  }
+})
+
+// Delete-Admin - Delete post
+app.delete("/delete-post/:id",authMiddleware, async (req, res) => {
+  try{
+    //find post with id and update
+    await Post.deleteOne({_id:req.params.id});
+  
+    //redirect to dashboard
+    res.redirect('/dashboard');
+  }catch(e){
+    console.log(e);
+  }
+})
+
+// Get-Admin - Logout
+app.get("/logout",async (req, res) => {
+  res.clearCookie('token');
+  res.redirect('/')
+  
 })
 
 //Admin register page route-Post
@@ -243,69 +381,7 @@ app.post("/register", async (req, res) => {
   }
 })
 
-// function insertPostData(){
-//     Post.insertMany([
-//         {
-//             title:"Building a Blog",
-//             body:"This is the body text"
-//         },
-//         {
-//             title:"Building a Blog 2",
-//             body:"This is the body text 2"
-//         },
-//         {
-//             title:"Building a Blog 2",
-//             body:"This is the body text 2"
-//         },
-//         {
-//             title:"Building a Blog 2",
-//             body:"This is the body text 2"
-//         },
-//         {
-//             title:"Building a Blog 2",
-//             body:"This is the body text 2"
-//         },
-//         {
-//             title:"Building a Blog 2",
-//             body:"This is the body text 2"
-//         },
-//         {
-//             title:"Building a Blog 2",
-//             body:"This is the body text 2"
-//         },
-//         {
-//             title:"Building a Blog 2",
-//             body:"This is the body text 2"
-//         },
-//         {
-//             title:"Building a Blog 2",
-//             body:"This is the body text 2"
-//         },
-//         {
-//             title:"Building a Blog 2",
-//             body:"This is the body text 2"
-//         },
-//         {
-//             title:"Building a Blog 2",
-//             body:"This is the body text 2"
-//         },
-//         {
-//             title:"Building a Blog 2",
-//             body:"This is the body text 2"
-//         },
 
-       
-//     ])
-// }
-// // insert into DB
-// insertPostData();
-
-app.get("/about",(req,res)=>{
-    res.render('about');
-});
-app.get("/contact",(req,res)=>{
-    res.render('contact');
-});
 
 app.listen(port, ()=>{
     console.log(`Server is running at ${port}...`);
